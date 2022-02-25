@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="ba7f3706-4d7c-40c8-bb61-08f65e8a3d31" >
+		<http:request-connection host="localhost" port="7070" />
+	</http:request-config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="21ac20d4-9e99-4d79-8737-f0d3d1bf588e" >
+		<http:listener-connection host="${http.host}" port="${http.port}" />
+	</http:listener-config>
+	<import doc:name="Import" doc:id="e956cdf9-2001-4ea3-b708-a44c541b4547" file="common-logger.xml" />
+	<configuration-properties doc:name="Configuration properties" doc:id="ec6f2164-10b9-4aae-87b4-a6fac80afd2b" file="config\config-${env}.yaml" />
+	<flow name="consume-restmain" doc:id="eef4293d-abf5-4da4-a3c7-d5778f4777cb" >
+		<http:listener doc:name="Listener" doc:id="ef97c04a-502e-44d0-9054-c2dca491c709" config-ref="HTTP_Listener_config" path="/git"/>
+		<logger level="INFO" doc:name="start" doc:id="68ce5462-ba4e-4c42-8829-78b9ee7e0710" />
+		<flow-ref doc:name="Flow Reference" doc:id="03b90555-9243-40d1-b71c-d445a245cfe5" name="common-loggerFlow"/>
+		<choice doc:name="Choice" doc:id="ba75ff47-64ec-4910-91e5-032af133a7ed" >
+			<when expression="#[(!isEmpty(attributes.queryParams.pname)) and (sizeOf(attributes.queryParams) &gt; 0)]">
+				<flow-ref doc:name="consume-restbyname" doc:id="b7a84fae-bdf4-467d-af19-d38a829ae312" name="consume-restbyname"/>
+			</when>
+			<when expression='#[(attributes.method=="POST") and (!isEmpty(payload))]'>
+				<flow-ref doc:name="consume-restaddproduct" doc:id="2d992d4b-2fdf-4074-9929-57eff4ace8c5" name="consume-restaddproduct"/>
+			</when>
+			<otherwise >
+				<flow-ref doc:name="consume-restallproducts" doc:id="472c6920-92fc-4b8e-ac2c-72f5362237f6" name="consume-restallproducts"/>
+			</otherwise>
+		</choice>
+		<flow-ref doc:name="Flow Reference" doc:id="522be224-95d7-4f25-b763-d47a631dd7d8" name="common-loggerFlow1"/>
+		<logger level="INFO" doc:name="end" doc:id="d7121d61-6c02-46fe-a141-e34d6cb9387d" />
+	</flow>
+	<flow name="consume-restallproducts" doc:id="d511a6f2-c82c-4c7a-9dc7-df6a5c5f8360" >
+		<logger level="INFO" doc:name="start" doc:id="112b1df4-25d0-4735-a90b-d8161d3db2bb" message="starting rest all products"/>
+		<http:request method="GET" doc:name="Request" doc:id="0795a6df-dce9-4051-9b0c-87e1cd6dd4b0" path="${http.rest.path}" config-ref="HTTP_Request_configuration"/>
+		<logger level="INFO" doc:name="end" doc:id="515738da-4c81-4379-b3ed-20cdb1a3c397" message="ending rest all products"/>
+	</flow>
+	<flow name="consume-restbyname" doc:id="ae846110-bd0d-43f5-93c6-de116b63672f" >
+		<logger level="INFO" doc:name="Logger" doc:id="ad986472-85bd-40ef-91a1-b3e87c7a74b4" />
+		<set-variable value="#[output application/json&#10;&#10;---&#10;attributes.queryParams.pname]" doc:name="input name " doc:id="c185e5e7-8b26-46b9-927b-9cba41ddcf83" variableName="pname"/>
+		<http:request method="GET" doc:name="Request" doc:id="cb2c7909-c1b0-44bd-8d00-5e79dbece534" path="${http.rest.pathbyname}" config-ref="HTTP_Request_configuration">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	name : vars.pname
+}]]]></http:uri-params>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="82aa82f5-e39b-471b-96e2-43cce5f1bb08" />
+	</flow>
+	<flow name="consume-restaddproduct" doc:id="2899afab-fe4a-4b73-9eff-f2f6d0b95b35" >
+		<logger level="INFO" doc:name="start" doc:id="235435a5-0a73-46bb-bd3c-41688b6a1d54" message="starting add product"/>
+		<http:request method="POST" doc:name="Request" doc:id="f2eec7e9-1c9c-4d39-877c-e3e2803f0a8e" path="${http.rest.path}" config-ref="HTTP_Request_configuration"/>
+		<logger level="INFO" doc:name="end" doc:id="71ed90a7-56c0-423c-8214-601546f49f8f" message="ending rest add product"/>
+	</flow>
+</mule>
